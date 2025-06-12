@@ -1,38 +1,51 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Tool Breakage Slip</title>
-</head>
-<body>
-    <h2>MACREQ MANUFACTURING SYSTEMS PRIVATE LIMITED</h2>
-    <h3>Tool Breakage Slip</h3>
-    <form action="/submit" method="post">
-        Name: <input type="text" name="name" required><br><br>
-        Department: <input type="text" name="department"><br><br>
-        Item Code: <input type="text" name="item_code"><br><br>
-        Description: <input type="text" name="description"><br><br>
-        Project: <input type="text" name="project"><br><br>
-        Part No: <input type="text" name="part_no"><br><br>
-        Operation: <input type="text" name="operation"><br><br>
+from flask import Flask, render_template, request, send_file
+import pandas as pd
+import os
 
-        <p>Reason for Breakage:</p>
-        <label><input type="checkbox" name="reason" value="Man Problem"> Man Problem</label><br>
-        <label><input type="checkbox" name="reason" value="Machine Problem"> Machine Problem</label><br>
-        <label><input type="checkbox" name="reason" value="Material Problem"> Material Problem</label><br>
-        <label><input type="checkbox" name="reason" value="Tool Problem"> Tool Problem</label><br>
-        <label><input type="checkbox" name="reason" value="Other"> Other</label><br><br>
+app = Flask(__name__)
 
-        Explanation:<br>
-        <textarea name="explanation" rows="4" cols="50"></textarea><br><br>
+EXCEL_FILE = "responses.xlsx"
 
-        Machine Breakdown Time: <input type="text" name="breakdown_time"><br><br>
-        Cost of Tool: <input type="text" name="cost"><br><br>
+@app.route('/')
+def form():
+    return render_template("form.html")
 
-        Operator (Supplier): <input type="text" name="operator"><br><br>
-        Supervisor (Supplier): <input type="text" name="supervisor"><br><br>
-        Tooling Engineer (Macreq): <input type="text" name="engineer"><br><br>
+@app.route('/submit', methods=['POST'])
+def submit():
+    data = {
+        "Name": request.form.get("name"),
+        "Department": request.form.get("department"),
+        "Item Code": request.form.get("item_code"),
+        "Description": request.form.get("description"),
+        "Project": request.form.get("project"),
+        "Part No": request.form.get("part_no"),
+        "Operation": request.form.get("operation"),
+        "Reason": ", ".join(request.form.getlist("reason")),
+        "Explanation": request.form.get("explanation"),
+        "Breakdown Time": request.form.get("breakdown_time"),
+        "Cost": request.form.get("cost"),
+        "Operator": request.form.get("operator"),
+        "Supervisor": request.form.get("supervisor"),
+        "Tooling Engineer": request.form.get("engineer"),
+    }
 
-        <button type="submit">Submit</button>
-    </form>
-</body>
-</html>
+    # Append to Excel
+    new_data = pd.DataFrame([data])
+    if os.path.exists(EXCEL_FILE):
+        existing = pd.read_excel(EXCEL_FILE)
+        all_data = pd.concat([existing, new_data], ignore_index=True)
+    else:
+        all_data = new_data
+    all_data.to_excel(EXCEL_FILE, index=False)
+
+    return "✅ Submitted successfully!"
+
+@app.route('/download')
+def download():
+    if os.path.exists(EXCEL_FILE):
+        return send_file(EXCEL_FILE, as_attachment=True)
+    else:
+        return "⚠️ No responses yet."
+
+if __name__ == '__main__':
+    app.run(debug=True)
