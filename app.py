@@ -1,12 +1,12 @@
-from flask import Flask, request, render_template
+from flask import Flask, render_template, request, send_file
 import pandas as pd
 import os
 
 app = Flask(__name__)
 
-excel_file = 'tool_breakage_responses.xlsx'
+EXCEL_FILE = "responses.xlsx"
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def form():
     return render_template('form.html')
 
@@ -20,7 +20,7 @@ def submit():
         "Project": request.form.get("project"),
         "Part No": request.form.get("part_no"),
         "Operation": request.form.get("operation"),
-        "Reason": ", ".join(request.form.getlist("reason")),
+        "Reason for Breakage": ", ".join(request.form.getlist("reason")),
         "Explanation": request.form.get("explanation"),
         "Breakdown Time": request.form.get("breakdown_time"),
         "Cost of Tool": request.form.get("cost"),
@@ -29,16 +29,22 @@ def submit():
         "Tooling Engineer": request.form.get("engineer")
     }
 
-    df = pd.DataFrame([data])
+    # Convert to DataFrame
+    new_entry = pd.DataFrame([data])
 
-    if not os.path.exists(excel_file):
-        df.to_excel(excel_file, index=False)
+    # Append to Excel file
+    if os.path.exists(EXCEL_FILE):
+        existing_data = pd.read_excel(EXCEL_FILE)
+        combined = pd.concat([existing_data, new_entry], ignore_index=True)
     else:
-        old_df = pd.read_excel(excel_file)
-        new_df = pd.concat([old_df, df], ignore_index=True)
-        new_df.to_excel(excel_file, index=False)
+        combined = new_entry
 
-    return "✅ Response recorded successfully!"
+    combined.to_excel(EXCEL_FILE, index=False)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    return "✅ Submitted successfully!"
+
+@app.route('/download')
+def download():
+    if os.path.exists(EXCEL_FILE):
+        return send_file(EXCEL_FILE, as_attachment=Tru_
+
